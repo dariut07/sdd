@@ -1,135 +1,50 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <stdio.h>
-#include <string.h>
 #include <malloc.h>
+#include <string.h>
 #include <stdlib.h>
+
 
 #define LINESIZE 128
 
-typedef struct Song Song;
+typedef struct Task Task;
 typedef struct Node Node;
 
-struct Song {
-    int trackId;
-    char* title;
-    char* artist;
-    float royaltyPerPlay;
+
+struct Task {
+    int taskId;
+    char* description;
+    float resourceUtilization;
 };
 
-//Lista simpla inlantuita
 struct Node {
-    Song song;
-    Node* next; // pointer
+    Task task;
+    Node* next;
 };
+Task readTaskFromFile(FILE* f) {
 
-// inserari in lista
-// metoda 1 - adaugare la inceput => modificam head ul de fiecare data si next pointeaza la elementul existent
-void insertAtBeginning(Node** head, Song song) {
-    Node* newNode = malloc(sizeof(Node));
-
-    newNode->song = song;
-    newNode->next = *head; // dam adresa lui head (care initial e NULL)
-
-    *head = newNode;
-}
-
-void printSongToConsole(Song song) {
-    printf("-------\n Song ID: %d\nSong title: %sSong artist: %sRoyalty per play: %.3f\n-----------\n", song.trackId, song.title, song.artist, song.royaltyPerPlay);
-
-}
-
-void parseListAndPrint(Node* head) {
-    if (head != NULL)
-    {
-        while (head != NULL)
-        {
-            printSongToConsole(head->song);
-            head = head->next;
-        }
-    }
-    else
-    {
-        printf("List is empty\n\n");
-    }
-}
-
-
-// metoda 2 - head-ul ramane mereu acelasi, parcurgem lista iar elementul adaugat va pointa la NULL
-void insertAtEnd(Node** head, Song song) {
-    if (*head != NULL) {
-
-        Node* aux = *head;
-
-        while (aux->next) {
-            aux = aux->next;
-        }
-
-        Node* newNode = malloc(sizeof(Node));
-        newNode->song = song;
-        newNode->next = NULL; // aux->next
-
-        aux->next = newNode;
-    }
-    else {
-        Node* newNode = malloc(sizeof(Node));
-
-        newNode->song = song;
-        newNode->next = *head; // newNode->next = NULL;
-        *head = newNode;
-    }
-}
-// stergere element din lista de la sfarsit
-Song deleteSongAtTheEnd(Node** head) {
-    if (*head) {
-        if ((*head)->next) {
-            Node* aux = *head;
-            while (aux->next->next) {
-                aux = aux->next;
-            }
-
-            Song song = aux->next->song;
-            //free(aux->next);
-            aux->next = NULL;
-            return song;
-        }
-        else {
-            Song song = (*head)->song;
-            //free((*head)->song);
-            *head = NULL;
-            return song;
-        }
-
-    }
-    Song song;
-    return song;
-}
-
-Song readSongFromFile(FILE* f) {
-
-    Song song;
+    Task task;
     char buffer[LINESIZE];
 
     fgets(buffer, LINESIZE, f);
-    song.trackId = atoi(buffer);
+    task.taskId = atoi(buffer);
 
     fgets(buffer, LINESIZE, f);
-    song.title = malloc((strlen(buffer) + 1) * sizeof(char));
-    strcpy(song.title, buffer);
+    // fgets- se opreste cand gaseste end line => in memorie : Web Browser\n - copiem fara \n si adaugam \0
+    task.description = malloc((strlen(buffer)) * sizeof(char));
+    strncpy(task.description, buffer, strlen(buffer) - 1);
+    task.description[strlen(buffer) - 1] = '\0';
+
 
     fgets(buffer, LINESIZE, f);
-    song.artist = malloc((strlen(buffer) + 1) * sizeof(char));
-    strcpy(song.artist, buffer);
-
-    fgets(buffer, LINESIZE, f);
-    song.royaltyPerPlay = atof(buffer);
+    task.resourceUtilization = atof(buffer);
     //atof - converteste in float
 
-    return song;
+    return task;
 
 }
-
-void readSongsFromFile(const char* filename, Song** songsArray, int* songsNumber) {
+void readTasksFromFile(const char* filename, Task** tasksArray, int* tasksNumber) {
 
     FILE* f;
     f = fopen(filename, "r");
@@ -137,12 +52,12 @@ void readSongsFromFile(const char* filename, Song** songsArray, int* songsNumber
     char buffer[LINESIZE];
     fgets(buffer, LINESIZE, f);
 
-    *songsNumber = atoi(buffer);
+    *tasksNumber = atoi(buffer);
     //atoi - converteste in string!
 
-    *songsArray = malloc((*songsNumber) * sizeof(Song));
-    for (int i = 0; i < *songsNumber; i++) {
-        (*songsArray)[i] = readSongFromFile(f);
+    *tasksArray = malloc((*tasksNumber) * sizeof(Task));
+    for (int i = 0; i < *tasksNumber; i++) {
+        (*tasksArray)[i] = readTaskFromFile(f);
     }
 
     fclose(f);
@@ -150,69 +65,157 @@ void readSongsFromFile(const char* filename, Song** songsArray, int* songsNumber
 }
 
 
+void printTaskToConsole(Task task) {
+    printf("Task %d\n\tDescription: %s\n\tResource Utilization: %.2f%%\n", task.taskId, task.description, task.resourceUtilization);
+}
 
-int main() {
+Task deepCopyTask(Task task) {
+    Task copyTask;
+    copyTask.taskId = task.taskId;
 
-    int songsNumber;
-    Song* playlist;
+    copyTask.description = malloc((strlen(task.description) + 1) * sizeof(char));
+    strcpy(copyTask.description, task.description);
 
-    readSongsFromFile("playlist.txt", &playlist, &songsNumber);
+    copyTask.resourceUtilization = task.resourceUtilization;
+    return copyTask;
+}
 
-    /*for (int i = 0; i < songsNumber; i++)
-    {
-        printSongToConsole(playlist[i]);
-    }*/
+void insertAtBeginning(Node** head, Task task) {
+    Node* newNode = malloc(sizeof(Node));
 
-    Node* head = NULL; // lista goala la inceput
+    newNode->task = task;
+    newNode->next = *head;
 
-    parseListAndPrint(head);
-    printf("List after one insertion: \n");
-    insertAtBeginning(&head, playlist[0]);
-    parseListAndPrint(head);
-    printf("--------------------\n");
+    *head = newNode;
+}
 
-    printf("List after the second insertion: \n");
-    insertAtBeginning(&head, playlist[1]);
-    parseListAndPrint(head);
-    printf("--------------------\n");
+void insertAtEnd(Node** head, Task task) {
 
-    printf("List after the third insertion: \n");
-    insertAtBeginning(&head, playlist[2]);
-    parseListAndPrint(head);
-    printf("--------------------\n");
+    Node* newNode = malloc(sizeof(Node));
+    newNode->task = task;
+    newNode->next = NULL;
 
-    printf("List after after inserting all songs: \n");
-    for (int i = 0; i < songsNumber; i++)
-    {
-        insertAtBeginning(&head, playlist[i]);
+    if (*head == NULL) {
+        Node* aux = *head;
+
+        while (aux->next) {
+            aux = aux->next;
+        }
+
+        aux->next = newNode;
+    }
+    else {
+
+        *head = newNode;
+    }
+}
+
+void parseListAndPrint(Node* head) {
+    if (head) {
+        while (head) {
+            printTaskToConsole(head->task);
+            head = head->next;
+        }
+    }
+    else {
+        printf("List is empty!\n\n");
+    }
+}
+Task deleteFromBeginning(Node** head) {
+    if (*head) {
+        Node* currentHead = *head;
+        Task deletedTask = currentHead->task;
+
+        *head = (*head)->next;
+        free(currentHead);
+
+        return deletedTask;
+    }
+    else {
+        Task deletedTask = { .taskId = 0, .description = "ERROR TASK", .resourceUtilization = 0 };
+        return deletedTask;
     }
 
+}
+
+Task deleteFromEnd(Node** head) {
+    if (*head) {
+        if ((*head)->next) {
+            Node* aux = *head;
+
+            while (aux->next->next) {
+                aux = aux->next;
+            }
+           
+            Node* lastNode = aux->next;
+
+            Task deletedTask = lastNode->task;
+            aux->next = NULL;
+            free(lastNode);
+
+            return deletedTask;
+
+        }
+        else {
+            Task deletedTask = (*head)->task;
+
+            free(*head);
+            *head = NULL;
+            return deletedTask;
+        }
+    }
+    else {
+        Task deletedTask = { .taskId = 0, .description = "ERROR TASK", .resourceUtilization = 0 };
+        return deletedTask;
+    }
+}
+int main()
+{
+    int tasksNumber;
+    Task* tasksArray;
+
+    readTasksFromFile("schenduler.txt", &tasksArray, &tasksNumber);
+
+    for (int i = 0; i < tasksNumber; i++) {
+        printTaskToConsole(tasksArray[i]);
+    }
+
+    Node* head = NULL;
+
+    printf("===========================\n");
+    insertAtBeginning(&head, deepCopyTask(tasksArray[0]));
+    insertAtBeginning(&head, deepCopyTask(tasksArray[1]));
+    insertAtEnd(&head, deepCopyTask(tasksArray[3]));
+
+ 
+    parseListAndPrint(head);
+    printf("===========================\n");
+    Task deletedTask = deleteFromBeginning(&head);
+    printTaskToConsole(deletedTask);
+
+    free(deletedTask.description);
+
+    printTaskToConsole(tasksArray[1]);
+
+
+    printf("===========================\n");
+
+
+    deletedTask = deleteFromEnd(&head);
+    printf("Deleted element: \n");
+    printTaskToConsole(deletedTask);
+
+    /*printf("===========================\n");
     parseListAndPrint(head);
 
-    Node* head2 = NULL;
+    printf("===========================\n");
+    deletedTask = deleteFromBeginning(&head);
+    deletedTask = deleteFromBeginning(&head);
 
-    printf("\n INSERT AT THE END --------- \n\n");
+    parseListAndPrint(head);
 
-    parseListAndPrint(head2);
-
-
-    printf("List after first insertion: \n");
-    printf("--------------------\n");
-    insertAtEnd(&head2, playlist[0]);
-    parseListAndPrint(head2);
-
-    printf("List after second insertion: \n");
-    printf("--------------------\n");
-    insertAtEnd(&head2, playlist[1]);
-    parseListAndPrint(head2);
-
-    printf("List after third insertion: \n");
-    printf("--------------------\n");
-    insertAtEnd(&head2, playlist[2]);
-    parseListAndPrint(head2);
-
-
-    Song song = deleteSongAtTheEnd(&head2);
-    parseListAndPrint(head2);
+    printf("===========================\n");
+    deletedTask = deleteFromBeginning(&head);
+    printTaskToConsole(deletedTask);*/
     return 0;
 }
