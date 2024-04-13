@@ -1,0 +1,218 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <string.h>
+#include <malloc.h>
+#include <stdlib.h>
+
+#define LINESIZE 128
+
+typedef struct Song Song;
+typedef struct Node Node;
+
+struct Song {
+    int trackId;
+    char* title;
+    char* artist;
+    float royaltyPerPlay;
+};
+
+//Lista simpla inlantuita
+struct Node {
+    Song song;
+    Node* next; // pointer
+};
+
+// inserari in lista
+// metoda 1 - adaugare la inceput => modificam head ul de fiecare data si next pointeaza la elementul existent
+void insertAtBeginning(Node** head, Song song) {
+    Node* newNode = malloc(sizeof(Node));
+
+    newNode->song = song;
+    newNode->next = *head; // dam adresa lui head (care initial e NULL)
+
+    *head = newNode;
+}
+
+void printSongToConsole(Song song) {
+    printf("-------\n Song ID: %d\nSong title: %sSong artist: %sRoyalty per play: %.3f\n-----------\n", song.trackId, song.title, song.artist, song.royaltyPerPlay);
+
+}
+
+void parseListAndPrint(Node* head) {
+    if (head != NULL)
+    {
+        while (head != NULL)
+        {
+            printSongToConsole(head->song);
+            head = head->next;
+        }
+    }
+    else
+    {
+        printf("List is empty\n\n");
+    }
+}
+
+
+// metoda 2 - head-ul ramane mereu acelasi, parcurgem lista iar elementul adaugat va pointa la NULL
+void insertAtEnd(Node** head, Song song) {
+    if (*head != NULL) {
+
+        Node* aux = *head;
+
+        while (aux->next) {
+            aux = aux->next;
+        }
+
+        Node* newNode = malloc(sizeof(Node));
+        newNode->song = song;
+        newNode->next = NULL; // aux->next
+
+        aux->next = newNode;
+    }
+    else {
+        Node* newNode = malloc(sizeof(Node));
+
+        newNode->song = song;
+        newNode->next = *head; // newNode->next = NULL;
+        *head = newNode;
+    }
+}
+// stergere element din lista de la sfarsit
+Song deleteSongAtTheEnd(Node** head) {
+    if (*head) {
+        if ((*head)->next) {
+            Node* aux = *head;
+            while (aux->next->next) {
+                aux = aux->next;
+            }
+
+            Song song = aux->next->song;
+            //free(aux->next);
+            aux->next = NULL;
+            return song;
+        }
+        else {
+            Song song = (*head)->song;
+            //free((*head)->song);
+            *head = NULL;
+            return song;
+        }
+
+    }
+    Song song;
+    return song;
+}
+
+Song readSongFromFile(FILE* f) {
+
+    Song song;
+    char buffer[LINESIZE];
+
+    fgets(buffer, LINESIZE, f);
+    song.trackId = atoi(buffer);
+
+    fgets(buffer, LINESIZE, f);
+    song.title = malloc((strlen(buffer) + 1) * sizeof(char));
+    strcpy(song.title, buffer);
+
+    fgets(buffer, LINESIZE, f);
+    song.artist = malloc((strlen(buffer) + 1) * sizeof(char));
+    strcpy(song.artist, buffer);
+
+    fgets(buffer, LINESIZE, f);
+    song.royaltyPerPlay = atof(buffer);
+    //atof - converteste in float
+
+    return song;
+
+}
+
+void readSongsFromFile(const char* filename, Song** songsArray, int* songsNumber) {
+
+    FILE* f;
+    f = fopen(filename, "r");
+
+    char buffer[LINESIZE];
+    fgets(buffer, LINESIZE, f);
+
+    *songsNumber = atoi(buffer);
+    //atoi - converteste in string!
+
+    *songsArray = malloc((*songsNumber) * sizeof(Song));
+    for (int i = 0; i < *songsNumber; i++) {
+        (*songsArray)[i] = readSongFromFile(f);
+    }
+
+    fclose(f);
+
+}
+
+
+
+int main() {
+
+    int songsNumber;
+    Song* playlist;
+
+    readSongsFromFile("playlist.txt", &playlist, &songsNumber);
+
+    /*for (int i = 0; i < songsNumber; i++)
+    {
+        printSongToConsole(playlist[i]);
+    }*/
+
+    Node* head = NULL; // lista goala la inceput
+
+    parseListAndPrint(head);
+    printf("List after one insertion: \n");
+    insertAtBeginning(&head, playlist[0]);
+    parseListAndPrint(head);
+    printf("--------------------\n");
+
+    printf("List after the second insertion: \n");
+    insertAtBeginning(&head, playlist[1]);
+    parseListAndPrint(head);
+    printf("--------------------\n");
+
+    printf("List after the third insertion: \n");
+    insertAtBeginning(&head, playlist[2]);
+    parseListAndPrint(head);
+    printf("--------------------\n");
+
+    printf("List after after inserting all songs: \n");
+    for (int i = 0; i < songsNumber; i++)
+    {
+        insertAtBeginning(&head, playlist[i]);
+    }
+
+    parseListAndPrint(head);
+
+    Node* head2 = NULL;
+
+    printf("\n INSERT AT THE END --------- \n\n");
+
+    parseListAndPrint(head2);
+
+
+    printf("List after first insertion: \n");
+    printf("--------------------\n");
+    insertAtEnd(&head2, playlist[0]);
+    parseListAndPrint(head2);
+
+    printf("List after second insertion: \n");
+    printf("--------------------\n");
+    insertAtEnd(&head2, playlist[1]);
+    parseListAndPrint(head2);
+
+    printf("List after third insertion: \n");
+    printf("--------------------\n");
+    insertAtEnd(&head2, playlist[2]);
+    parseListAndPrint(head2);
+
+
+    Song song = deleteSongAtTheEnd(&head2);
+    parseListAndPrint(head2);
+    return 0;
+}
